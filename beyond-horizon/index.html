@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04050a">
+<meta name="description" content="Beyond Horizon renders a Schwarzschild black hole in real time by integrating a null geodesic for every pixel on screen.">
+<link rel="icon" href="data:,">
+<title>Beyond Horizon — a black hole, integrated per pixel</title>
+<link rel="stylesheet" href="css/landing.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<header class="hero">
+  <canvas id="hero" aria-hidden="true"></canvas>
+  <div class="hero-scrim" aria-hidden="true"></div>
+
+  <div class="hero-body">
+    <p class="kicker">Real-time relativistic raytracing</p>
+
+    <h1 class="mark">
+      <span class="sr-only">Beyond Horizon</span>
+      <span class="mark-word mark-above" aria-hidden="true"
+        ><i>B</i><i>E</i><i>Y</i><i>O</i><i>N</i><i>D</i></span>
+      <span class="mark-rule" aria-hidden="true"></span>
+      <span class="mark-word mark-below" aria-hidden="true"
+        ><i>H</i><i>O</i><i>R</i><i>I</i><i>Z</i><i>O</i><i>N</i></span>
+    </h1>
+
+    <p class="thesis">
+      A Schwarzschild black hole, integrated one null geodesic per pixel,
+      running live in this tab.
+    </p>
+
+    <div class="hero-actions">
+      <a class="cta" href="explore.html">Enter the simulation</a>
+      <a class="cta cta-quiet" href="#geometry">What you are looking at</a>
+    </div>
+
+    <dl class="facts">
+      <div><dt>Mass</dt><dd>1.0 × 10<sup>8</sup> M<span class="sun">☉</span></dd></div>
+      <div><dt>Integration</dt><dd>460 steps per ray</dd></div>
+      <div><dt>Disk model</dt><dd>Novikov–Thorne flux</dd></div>
+      <div><dt>Runtime</dt><dd>WebGL2, no server</dd></div>
+    </dl>
+  </div>
+
+  <div class="hero-note">
+    <span class="pulse" aria-hidden="true"></span>
+    Rendering now. Every frame is solved from scratch.
+  </div>
+</header>
+
+<main>
+
+<!-- ------------------------------------------------------------ geometry -- -->
+<section class="section" id="geometry">
+  <div class="section-head">
+    <p class="eyebrow">The only axis that matters</p>
+    <h2>Distance from the singularity, in Schwarzschild radii</h2>
+    <p class="lede">
+      One number decides what a photon does here. Everything the image shows is
+      a consequence of where light passed.
+    </p>
+  </div>
+
+  <!-- Linear 1 to 3.2: every radius this section is about lives in that span,
+       and putting the 40 Rs disk edge on the same rule would crush all four
+       of them into the first tenth of it. -->
+  <div class="axis" role="img" aria-label="Scale from 1 to 3.2 Schwarzschild radii marking the horizon at 1, the photon sphere at 1.5, the apparent shadow edge at 2.6 and the innermost stable orbit at 3">
+    <div class="axis-rule">
+      <span class="axis-notch lit" style="left:0%"></span>
+      <span class="axis-notch lit" style="left:22.73%"></span>
+      <span class="axis-notch lit" style="left:72.73%"></span>
+      <span class="axis-notch lit" style="left:90.91%"></span>
+    </div>
+    <div class="axis-labels">
+      <span style="left:0%">1</span>
+      <span style="left:22.73%">1.5</span>
+      <span style="left:72.73%">2.6</span>
+      <span style="left:90.91%">3 R<sub>s</sub></span>
+    </div>
+    <p class="axis-note">The disk itself keeps going, out to 40 R<sub>s</sub>.</p>
+  </div>
+
+  <ol class="radii">
+    <li>
+      <span class="radius">1.0</span>
+      <h3>Event horizon</h3>
+      <p>
+        The last surface anything crosses in one direction. No ray that reaches
+        it returns, so it is drawn as the only true black in the frame.
+      </p>
+    </li>
+    <li>
+      <span class="radius">1.5</span>
+      <h3>Photon sphere</h3>
+      <p>
+        Light can orbit at this radius. Rays that graze it wind around the hole
+        and leave again, which is why a thin bright curve traces the shadow.
+      </p>
+    </li>
+    <li>
+      <span class="radius">2.6</span>
+      <h3>Shadow, as seen</h3>
+      <p>
+        The dark disc reads larger than the horizon it comes from. Gravity
+        magnifies it to √27 / 2 radii for a distant observer.
+      </p>
+    </li>
+    <li>
+      <span class="radius">3.0</span>
+      <h3>Innermost stable orbit</h3>
+      <p>
+        Gas cannot hold a circular orbit any closer, so the accretion disk stops
+        here. This is its hottest, fastest, brightest edge.
+      </p>
+    </li>
+  </ol>
+</section>
+
+<!-- ------------------------------------------------------------ pipeline -- -->
+<section class="section section-alt" id="pipeline">
+  <div class="section-head">
+    <p class="eyebrow">One frame, start to finish</p>
+    <h2>What happens between your GPU and the image</h2>
+    <p class="lede">
+      There is no mesh, no texture of a black hole, and no pre-rendered footage.
+      The pipeline below runs for every pixel, every frame.
+    </p>
+  </div>
+
+  <ol class="steps">
+    <li>
+      <h3>Cast</h3>
+      <p>
+        Each pixel becomes one ray leaving the observer, aimed through the
+        field of view at the geometry ahead.
+      </p>
+    </li>
+    <li>
+      <h3>Integrate</h3>
+      <p>
+        The ray is stepped through the Schwarzschild metric. Its path curves,
+        so the integrator refines near the photon sphere where the curve is
+        tightest.
+      </p>
+    </li>
+    <li>
+      <h3>Cross</h3>
+      <p>
+        Where a path cuts the disk plane, emission is added from the local flux,
+        then shifted by relativistic beaming and gravitational redshift. The
+        approaching limb runs blue and bright, the receding one red and dim.
+      </p>
+    </li>
+    <li>
+      <h3>Escape, or do not</h3>
+      <p>
+        Rays that clear the well sample the star field along their final
+        direction, which is why the sky behind the hole appears bent. The rest
+        end at the horizon.
+      </p>
+    </li>
+    <li>
+      <h3>Grade</h3>
+      <p>
+        Bloom is fed by the photon ring alone, then the frame goes through ACES
+        tone mapping, a vignette and fine grain.
+      </p>
+    </li>
+  </ol>
+</section>
+
+<!-- ------------------------------------------------------------ controls -- -->
+<section class="section" id="controls">
+  <div class="section-head">
+    <p class="eyebrow">Once you are inside</p>
+    <h2>Controls</h2>
+    <p class="lede">
+      The camera starts on a cinematic path. Any drag, scroll or pinch takes it
+      back, from wherever the shot happened to be.
+    </p>
+  </div>
+
+  <div class="keymap">
+    <div class="keyrow"><kbd>Drag</kbd><span>Orbit the hole</span></div>
+    <div class="keyrow"><kbd>Scroll</kbd><span>Close in or pull back</span></div>
+    <div class="keyrow"><kbd>1</kbd><span>Poster vantage, 24 R<sub>s</sub></span></div>
+    <div class="keyrow"><kbd>2</kbd><span>Edge on, 6° above the disk</span></div>
+    <div class="keyrow"><kbd>3</kbd><span>Polar, looking down the axis</span></div>
+    <div class="keyrow"><kbd>4</kbd><span>Close pass, 9 R<sub>s</sub></span></div>
+    <div class="keyrow"><kbd>C</kbd><span>Cinematic path on or off</span></div>
+    <div class="keyrow"><kbd>R</kbd><span>Auto orbit</span></div>
+    <div class="keyrow"><kbd>Q</kbd><span>Cycle render profile</span></div>
+    <div class="keyrow"><kbd>P</kbd><span>Open the physics parameters</span></div>
+    <div class="keyrow"><kbd>H</kbd><span>Hide the telemetry</span></div>
+    <div class="keyrow"><kbd>M</kbd><span>Sound</span></div>
+  </div>
+
+  <a class="cta cta-block" href="explore.html">Enter the simulation</a>
+</section>
+
+</main>
+
+<footer class="foot">
+  <p class="foot-quote">“Do not go gentle into that good night.”</p>
+  <p class="foot-meta">
+    Beyond Horizon. Schwarzschild metric, null-geodesic raytracing, WebGL2.
+  </p>
+</footer>
+
+<script type="module" src="js/hero.js"></script>
+</body>
+</html>

@@ -1,0 +1,569 @@
+/* BEYOND HORIZON — live Schwarzschild raytracer, instrument surface.
+
+   Palette is lifted straight out of the fragment shader's blackbody() ramp,
+   so the interface and the disk it describes speak the same colour language:
+   ember is the receding limb, photon the approaching one, flare the peak. */
+
+:root{
+  --void:      #04050a;
+  --deep:      #080b13;
+  --panel:     rgba(8, 11, 19, .90);
+
+  --ember:     #ff6b1f;
+  --ember-dim: rgba(255, 107, 31, .40);
+  --flare:     #ffd08a;
+  --photon:    #bcd8ff;
+  --dust:      #7c869c;
+  --paper:     #e9eef7;
+
+  --hair:      rgba(124, 134, 156, .20);
+  --hair-lit:  rgba(255, 107, 31, .38);
+
+  /* one spacing scale, no stray 5px/6px/9px */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI",
+             Inter, system-ui, sans-serif;
+}
+
+*{ box-sizing: border-box; }
+html, body{
+  margin: 0; padding: 0;
+  width: 100%; height: 100%;
+  background: var(--void);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body{
+  font-family: var(--mono);
+  color: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+}
+
+#view{
+  position: fixed;
+  inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  background: var(--void);
+  touch-action: none;
+  z-index: 1;
+}
+
+/* ============================================================ wordmark ==== */
+/* Two words, one hairline between them: the rule is the horizon. Everything
+   below it is redshifted, the way light is on its way out of the well. */
+
+.mark-word{
+  display: flex;
+  justify-content: space-between;   /* both words flush to the same measure */
+  font-family: var(--display);
+  font-weight: 700;
+  line-height: 1;
+  font-style: normal;
+}
+.mark-word i{ font-style: normal; }
+.mark-above{ color: var(--paper); }
+.mark-below{ color: var(--ember); opacity: .78; }
+.mark-rule{
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, var(--ember), var(--ember-dim) 62%, transparent);
+}
+
+/* ================================================================= HUD ==== */
+#hud{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity .5s ease;
+}
+#hud.off{ opacity: 0; }
+
+.ident{
+  position: absolute;
+  left: var(--s6); top: var(--s5);
+  width: 280px;
+}
+.mark{
+  display: block;
+  width: 240px;
+  text-decoration: none;
+  pointer-events: auto;
+  outline-offset: 6px;
+}
+.mark .mark-word{ font-size: 30px; letter-spacing: 0; }
+.mark .mark-rule{ margin: 7px 0; }
+.mark:hover .mark-below{ opacity: 1; }
+
+.ident-sub{
+  margin: var(--s3) 0 0;
+  font-size: 9.5px;
+  letter-spacing: .2em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  color: var(--dust);
+}
+.ident-sub sup{ font-size: .8em; }
+.sun{ color: var(--flare); }
+
+/* --------------------------------------------------------- radial scale -- */
+/* Log axis from 1 to 60 RS. Fixed notches mark the horizon, the photon
+   sphere and the ISCO; the caret is where the observer actually is. */
+.scale{ margin-top: var(--s4); width: 240px; }
+.scale-ticks{ position: relative; height: 11px; }
+.tick{
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 8px;
+  letter-spacing: .06em;
+  color: var(--dust);
+}
+.tick b{ font-weight: 400; }
+.scale-rule{
+  position: relative;
+  height: 1px;
+  background: var(--hair);
+}
+.notch{
+  position: absolute;
+  top: -3px;
+  width: 1px; height: 7px;
+  background: var(--dust);
+  opacity: .55;
+}
+.notch.lit{ background: var(--ember); opacity: .9; height: 9px; top: -4px; }
+.observer{
+  position: absolute;
+  top: -7px; left: 0;
+  width: 0; height: 0;
+  margin-left: -4px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid var(--flare);
+  transition: left .22s linear;
+}
+.scale-caption{
+  margin-top: var(--s2);
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--paper);
+}
+.scale-caption .sep{ color: var(--dust); margin: 0 var(--s2); }
+
+/* ------------------------------------------------------------- mission --- */
+.mission{
+  position: absolute;
+  right: var(--s6); top: var(--s5);
+  text-align: right;
+}
+.mission-label{
+  font-size: 8.5px;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: var(--dust);
+}
+.mission-clock{
+  margin-top: var(--s2);
+  font-size: 18px;
+  letter-spacing: .14em;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------- telemetry --- */
+.telemetry{
+  position: absolute;
+  left: var(--s6); bottom: var(--s5);
+  width: 240px;
+}
+.trow{
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 0;
+  border-top: 1px solid var(--hair);
+  white-space: nowrap;
+}
+.trow:first-child{ border-top: 0; }
+.tlabel{
+  font-size: 8.5px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--dust);
+}
+.tval{
+  font-size: 10.5px;
+  letter-spacing: .06em;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================================================================ deck ==== */
+/* Rows, not a grid of centred buttons: every control reads as label + state,
+   which is the same grammar as the telemetry above it. */
+.deck{
+  position: absolute;
+  right: var(--s6); bottom: var(--s5);
+  width: 268px;
+  pointer-events: auto;
+  border: 1px solid var(--hair);
+  background: var(--panel);
+  padding: var(--s3) 0 var(--s2);
+}
+.deck-head{
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 var(--s3) var(--s3);
+  border-bottom: 1px solid var(--hair);
+}
+.deck-title{
+  font-size: 9px;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+.deck-mode{
+  font-size: 8.5px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--ember);
+}
+
+.group{ padding: var(--s3) 0 var(--s1); }
+.group + .group{ border-top: 1px solid var(--hair); }
+.group-label{
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 0 var(--s3) var(--s1);
+  font-size: 8px;
+  letter-spacing: .32em;
+  text-transform: uppercase;
+  color: var(--dust);
+}
+.group-label::after{
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--hair);
+}
+
+.row{
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  width: 100%;
+  min-height: 30px;
+  padding: 0 var(--s3) 0 var(--s3);
+  font-family: var(--mono);
+  background: transparent;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+  text-align: left;
+  transition: background .14s ease, border-color .14s ease;
+}
+.row-label{
+  flex: 1;
+  font-size: 9.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--dust);
+  transition: color .14s ease;
+}
+.row-val{
+  font-size: 9.5px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--photon);
+  font-variant-numeric: tabular-nums;
+  transition: color .14s ease;
+}
+.row kbd{
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 15px; height: 15px;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--dust);
+  border: 1px solid var(--hair);
+  opacity: .8;
+}
+
+.row:hover{ background: rgba(188, 216, 255, .05); border-left-color: var(--hair); }
+.row:hover .row-label{ color: var(--paper); }
+.row.active{ border-left-color: var(--ember); background: rgba(255, 107, 31, .07); }
+.row.active .row-label{ color: var(--paper); }
+.row.active .row-val{ color: var(--flare); }
+.row:focus-visible{ outline: 1px solid var(--photon); outline-offset: -1px; }
+
+/* --------------------------------------------------------------- hint ---- */
+#hint{
+  position: absolute;
+  bottom: var(--s5); left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--dust);
+  opacity: 0;
+  transition: opacity .7s ease;
+  white-space: nowrap;
+}
+#hint.show{ opacity: 1; }
+@media (max-width: 1180px){ #hint{ display: none; } }
+
+/* --------------------------------------------------------------- toast --- */
+#toast{
+  position: absolute;
+  top: var(--s5); left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--flare);
+  border-left: 2px solid var(--ember);
+  background: var(--panel);
+  padding: var(--s2) var(--s3);
+  opacity: 0;
+  transition: opacity .28s ease;
+  pointer-events: none;
+}
+#toast.show{ opacity: 1; }
+
+/* ====================================================== params console ==== */
+#params{
+  position: fixed;
+  top: var(--s5); right: calc(var(--s6) + 268px + var(--s3));
+  width: 272px;
+  max-height: calc(100vh - 48px);
+  z-index: 15;
+  border: 1px solid var(--hair);
+  background: var(--panel);
+  padding: 0 var(--s3) var(--s3);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ember-dim) transparent;
+}
+#params.hidden{ display: none; }
+#params::-webkit-scrollbar{ width: 4px; }
+#params::-webkit-scrollbar-thumb{ background: var(--ember-dim); }
+#params::-webkit-scrollbar-track{ background: transparent; }
+
+.params-head{
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s3);
+  font-size: 9px;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--paper);
+  padding: var(--s3) 0;
+  margin-bottom: var(--s2);
+  background: var(--deep);
+  border-bottom: 1px solid var(--hair);
+  z-index: 2;
+}
+
+.ghost{
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--dust);
+  background: transparent;
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: color .14s ease, border-color .14s ease;
+}
+.ghost:hover{ color: var(--flare); border-color: var(--hair-lit); }
+.ghost:focus-visible{ outline: 1px solid var(--photon); outline-offset: 2px; }
+
+.prow{ margin-bottom: var(--s3); }
+.phead{
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--s1);
+}
+.plabel{
+  font-size: 8px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--dust);
+}
+.pval{
+  font-size: 9px;
+  letter-spacing: .04em;
+  color: var(--photon);
+  font-variant-numeric: tabular-nums;
+}
+.prow input[type="range"]{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  background: transparent;
+  cursor: pointer;
+  display: block;
+}
+.prow input[type="range"]::-webkit-slider-runnable-track{
+  height: 1px;
+  background: var(--hair);
+}
+.prow input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 9px; height: 9px;
+  border-radius: 0;
+  background: var(--ember);
+  margin-top: -4px;
+  border: 0;
+}
+.prow input[type="range"]::-moz-range-track{
+  height: 1px;
+  background: var(--hair);
+}
+.prow input[type="range"]::-moz-range-thumb{
+  width: 9px; height: 9px;
+  border-radius: 0;
+  background: var(--ember);
+  border: 0;
+}
+.prow input[type="range"]:focus-visible{
+  outline: 1px solid var(--photon);
+  outline-offset: 2px;
+}
+
+/* =============================================================== intro ==== */
+#intro{
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: var(--void);
+  display: grid;
+  place-items: center;
+}
+body.ready #intro{
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.4s ease;
+}
+.intro-card{
+  text-align: center;
+  animation: introCard 5.2s ease forwards;
+}
+@keyframes introCard{
+  0%   { opacity: 0; transform: scale(1.04); filter: blur(10px); }
+  22%  { opacity: 1; transform: scale(1);    filter: blur(0); }
+  80%  { opacity: 1; transform: scale(1);    filter: blur(0); }
+  100% { opacity: 0; transform: scale(.995); filter: blur(0); }
+}
+.intro-kicker{
+  font-size: 9px;
+  letter-spacing: .46em;
+  text-transform: uppercase;
+  color: var(--dust);
+  margin-bottom: var(--s5);
+  padding-left: .46em;
+}
+.intro-mark{
+  width: min(70vw, 520px);
+  margin: 0 auto;
+}
+.intro-mark .mark-word{ font-size: clamp(38px, 8.5vw, 78px); }
+.intro-mark .mark-rule{ margin: 12px 0; }
+.intro-quote{
+  margin-top: var(--s5);
+  font-size: 11px;
+  font-style: italic;
+  letter-spacing: .2em;
+  color: var(--flare);
+  opacity: .7;
+  padding-left: .2em;
+}
+
+/* =============================================================== fatal ==== */
+#fatal{
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(4, 5, 10, .92);
+  display: grid;
+  place-items: center;
+}
+#fatal[hidden]{ display: none; }
+.fatal-card{
+  max-width: 420px;
+  border: 1px solid var(--hair);
+  border-left: 2px solid var(--ember);
+  background: var(--deep);
+  padding: var(--s5) var(--s6);
+}
+.fatal-kicker{
+  font-size: 8.5px;
+  letter-spacing: .36em;
+  text-transform: uppercase;
+  color: var(--ember);
+  margin-bottom: var(--s3);
+}
+.fatal-title{
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--paper);
+  margin-bottom: var(--s3);
+}
+.fatal-msg{
+  font-size: 10.5px;
+  line-height: 1.85;
+  color: var(--dust);
+  margin-bottom: var(--s5);
+  word-break: break-word;
+}
+.fatal-actions{ display: flex; gap: var(--s2); }
+
+/* ========================================================== responsive ==== */
+@media (max-width: 1100px){
+  #params{ right: var(--s4); top: var(--s4); }
+}
+@media (max-width: 860px){
+  .ident{ left: var(--s4); top: var(--s4); width: 200px; }
+  .mark{ width: 176px; }
+  .mark .mark-word{ font-size: 22px; }
+  .scale{ width: 176px; }
+  .mission{ right: var(--s4); top: var(--s4); }
+  .mission-clock{ font-size: 14px; }
+  .telemetry{ display: none; }
+  .deck{ right: var(--s4); bottom: var(--s4); width: 236px; }
+  .row{ min-height: 38px; }
+  #params{
+    right: var(--s2); left: var(--s2);
+    width: auto;
+    max-height: calc(100vh - 32px);
+  }
+}
+
+/* ======================================================= reduced motion ==== */
+@media (prefers-reduced-motion: reduce){
+  .observer{ transition: none; }
+  .intro-card{ animation: introStill 1s ease forwards; }
+  @keyframes introStill{ 0%{ opacity: 0; } 100%{ opacity: 1; } }
+  body.ready #intro{ transition: opacity .5s ease; }
+  #hud{ transition: opacity .2s ease; }
+}

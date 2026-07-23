@@ -1,0 +1,431 @@
+/* BEYOND HORIZON — landing surface.
+   Same tokens as the instrument, given room to breathe. */
+
+:root{
+  --void:      #04050a;
+  --deep:      #080b13;
+  --raise:     #0c1019;
+
+  --ember:     #ff6b1f;
+  --ember-dim: rgba(255, 107, 31, .40);
+  --flare:     #ffd08a;
+  --photon:    #bcd8ff;
+  --dust:      #7c869c;
+  --paper:     #e9eef7;
+
+  --hair:      rgba(124, 134, 156, .18);
+  --hair-lit:  rgba(255, 107, 31, .38);
+
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 24px; --s6: 32px; --s7: 48px; --s8: 72px; --s9: 112px;
+
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI",
+             Inter, system-ui, sans-serif;
+
+  --measure: 60ch;
+  --gutter: clamp(20px, 6vw, 88px);
+}
+
+*{ box-sizing: border-box; }
+html{ scroll-behavior: smooth; }
+body{
+  margin: 0;
+  background: var(--void);
+  color: var(--paper);
+  font-family: var(--mono);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+.sr-only{
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+a{ color: inherit; }
+sub{ font-size: .72em; }
+sup{ font-size: .72em; }
+.sun{ color: var(--flare); }
+
+/* ============================================================ wordmark ==== */
+/* The rule between the two words is the horizon. What sits below it is
+   redshifted, the way light is on its way out. */
+.mark{ margin: 0; }
+.mark-word{
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--display);
+  font-weight: 700;
+  line-height: 1;
+}
+.mark-word i{ font-style: normal; }
+.mark-above{ color: var(--paper); }
+.mark-below{ color: var(--ember); }
+.mark-rule{
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, var(--ember), var(--ember-dim) 62%, transparent);
+}
+
+/* ================================================================ hero ==== */
+.hero{
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--s9) var(--gutter) var(--s8);
+  overflow: hidden;
+}
+#hero{
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+body.hero-live #hero{ opacity: 1; }
+.hero-scrim{
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(100deg, rgba(4,5,10,.94) 0%, rgba(4,5,10,.72) 42%, transparent 72%),
+    linear-gradient(0deg, var(--void) 0%, transparent 34%);
+}
+.hero-body{
+  position: relative;
+  max-width: 640px;
+}
+
+.kicker{
+  margin: 0 0 var(--s6);
+  font-size: 9.5px;
+  letter-spacing: .42em;
+  text-transform: uppercase;
+  color: var(--dust);
+  padding-left: .42em;
+}
+
+.hero .mark{ width: min(100%, 560px); }
+.hero .mark-word{ font-size: clamp(44px, 9vw, 92px); }
+.hero .mark-rule{ margin: clamp(8px, 1.4vw, 14px) 0; }
+
+.thesis{
+  margin: var(--s7) 0 0;
+  max-width: 46ch;
+  font-size: clamp(14px, 1.5vw, 16px);
+  line-height: 1.75;
+  color: var(--paper);
+}
+
+.hero-actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  margin-top: var(--s7);
+}
+
+.cta{
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 14px 22px;
+  font-size: 10px;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--void);
+  background: var(--ember);
+  border: 1px solid var(--ember);
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+.cta::after{ content: "→"; letter-spacing: 0; }
+.cta:hover{ background: var(--flare); border-color: var(--flare); }
+.cta:focus-visible{ outline: 2px solid var(--photon); outline-offset: 3px; }
+
+.cta-quiet{
+  color: var(--dust);
+  background: transparent;
+  border-color: var(--hair);
+}
+.cta-quiet::after{ content: "↓"; }
+.cta-quiet:hover{ background: transparent; color: var(--paper); border-color: var(--dust); }
+
+.facts{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: var(--s5) var(--s5);
+  margin: var(--s8) 0 0;
+  padding-top: var(--s5);
+  border-top: 1px solid var(--hair);
+}
+.facts dt{
+  font-size: 8.5px;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: var(--dust);
+}
+.facts dd{
+  margin: var(--s2) 0 0;
+  font-size: 12px;
+  letter-spacing: .04em;
+  color: var(--paper);
+}
+
+.hero-note{
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s8);
+  font-size: 9px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--dust);
+}
+.pulse{
+  width: 5px; height: 5px;
+  background: var(--ember);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%, 100%{ opacity: 1; }
+  50%     { opacity: .25; }
+}
+
+/* ============================================================ sections ==== */
+.section{
+  padding: var(--s9) var(--gutter);
+  border-top: 1px solid var(--hair);
+}
+.section-alt{ background: var(--deep); }
+
+.section-head{ max-width: var(--measure); }
+.eyebrow{
+  margin: 0 0 var(--s4);
+  font-size: 9px;
+  letter-spacing: .34em;
+  text-transform: uppercase;
+  color: var(--ember);
+}
+.section-head h2{
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: clamp(24px, 3.4vw, 38px);
+  line-height: 1.18;
+  letter-spacing: -.015em;
+  color: var(--paper);
+}
+.lede{
+  margin: var(--s5) 0 0;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--dust);
+}
+
+/* --------------------------------------------------------------- axis ---- */
+.axis{
+  position: relative;
+  margin: var(--s9) 0 var(--s8);
+  max-width: 900px;
+}
+.axis-rule{
+  position: relative;
+  height: 1px;
+  background: var(--hair);
+}
+.axis-notch{
+  position: absolute;
+  top: -6px;
+  /* 1px at a fractional percentage antialiases across two columns and reads
+     washed out; 2px stays the colour it was given */
+  width: 2px; height: 13px;
+  margin-left: -1px;
+  background: var(--dust);
+}
+.axis-notch.lit{ background: var(--ember); }
+.axis-labels{ position: relative; height: 16px; margin-top: var(--s3); }
+.axis-labels span{
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: .06em;
+  color: var(--dust);
+  white-space: nowrap;
+}
+.axis-note{
+  margin: var(--s5) 0 0;
+  font-size: 10px;
+  letter-spacing: .04em;
+  color: var(--dust);
+  opacity: .7;
+}
+
+/* -------------------------------------------------------------- radii ---- */
+.radii{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--hair);
+  border: 1px solid var(--hair);
+}
+.radii li{
+  padding: var(--s6) var(--s5) var(--s7);
+  background: var(--void);
+}
+.section-alt .radii li{ background: var(--deep); }
+.radius{
+  display: block;
+  font-family: var(--display);
+  font-size: 40px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -.03em;
+  color: var(--ember);
+}
+.radii h3{
+  margin: var(--s4) 0 var(--s3);
+  font-size: 10px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  font-weight: 400;
+  color: var(--paper);
+}
+.radii p{
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--dust);
+}
+
+/* -------------------------------------------------------------- steps ---- */
+/* Numbered because this genuinely is a sequence: step 3 cannot run before
+   step 2 has bent the ray. */
+.steps{
+  counter-reset: step;
+  margin: var(--s9) 0 0;
+  padding: 0;
+  list-style: none;
+  max-width: 960px;
+}
+.steps li{
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 0 var(--s5);        /* rows are spaced by the heading's own margin */
+  padding: var(--s6) 0;
+  border-top: 1px solid var(--hair);
+}
+/* Three children into two columns: place them, or the paragraph wraps into
+   the 68px counter column. */
+.steps li::before{
+  content: counter(step, decimal-leading-zero);
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: .1em;
+  color: var(--ember);
+  padding-top: 3px;
+}
+.steps h3{
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0 0 var(--s3);
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  color: var(--paper);
+}
+.steps p{
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+  max-width: var(--measure);
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: var(--dust);
+}
+
+/* ------------------------------------------------------------- keymap ---- */
+.keymap{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0 var(--s8);
+  margin: var(--s8) 0 var(--s8);
+  max-width: 900px;
+}
+.keyrow{
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  padding: var(--s3) 0;
+  border-top: 1px solid var(--hair);
+  font-size: 12px;
+  color: var(--dust);
+}
+.keyrow kbd{
+  flex: none;
+  display: grid;
+  place-items: center;
+  /* fixed, not min-width: "SCROLL" and "1" must not shift the label column */
+  width: 62px;
+  padding: 5px 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--photon);
+  border: 1px solid var(--hair);
+}
+
+.cta-block{ margin-top: var(--s5); }
+
+/* ================================================================ foot ==== */
+.foot{
+  padding: var(--s8) var(--gutter) var(--s9);
+  border-top: 1px solid var(--hair);
+}
+.foot-quote{
+  margin: 0;
+  font-size: 13px;
+  font-style: italic;
+  letter-spacing: .12em;
+  color: var(--flare);
+  opacity: .72;
+}
+.foot-meta{
+  margin: var(--s5) 0 0;
+  font-size: 9px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--dust);
+}
+
+/* ========================================================== responsive ==== */
+@media (max-width: 720px){
+  .hero{ padding-top: var(--s8); }
+  .hero-scrim{
+    background: linear-gradient(0deg, var(--void) 26%, rgba(4,5,10,.72) 62%, rgba(4,5,10,.5) 100%);
+  }
+  .steps li{ grid-template-columns: 42px minmax(0, 1fr); gap: var(--s4); }
+  .axis-labels span{ font-size: 9px; }
+}
+
+/* ======================================================= reduced motion ==== */
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior: auto; }
+  .pulse{ animation: none; }
+  #hero{ transition: none; opacity: 1; }
+}

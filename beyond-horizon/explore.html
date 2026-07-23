@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#04050a">
+<link rel="icon" href="data:,">
+<title>Beyond Horizon — Live Schwarzschild Raytracer</title>
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="view" aria-label="Real-time Schwarzschild black hole raytracer"></canvas>
+
+<div id="hud">
+  <header class="ident">
+    <a class="mark" href="index.html" aria-label="Beyond Horizon — back to overview">
+      <span class="mark-word mark-above" aria-hidden="true"
+        ><i>B</i><i>E</i><i>Y</i><i>O</i><i>N</i><i>D</i></span>
+      <span class="mark-rule" aria-hidden="true"></span>
+      <span class="mark-word mark-below" aria-hidden="true"
+        ><i>H</i><i>O</i><i>R</i><i>I</i><i>Z</i><i>O</i><i>N</i></span>
+    </a>
+    <p class="ident-sub">1.0 × 10<sup>8</sup> M<span class="sun">☉</span> · Schwarzschild</p>
+
+    <!-- radial scale: the one axis that means anything in this geometry -->
+    <div class="scale" role="img" aria-labelledby="scaleCaption">
+      <div class="scale-ticks">
+        <span class="tick" style="left:0%"><b>1</b></span>
+        <span class="tick" style="left:26.8%"><b>3</b></span>
+        <span class="tick" id="tickEdge" style="left:90.1%"><b>40</b></span>
+      </div>
+      <div class="scale-rule">
+        <span class="notch" style="left:0%"></span>
+        <span class="notch lit" style="left:9.9%"></span>
+        <span class="notch lit" style="left:26.8%"></span>
+        <span class="notch" id="notchEdge" style="left:90.1%"></span>
+        <span class="observer" id="observer"></span>
+      </div>
+      <div class="scale-caption" id="scaleCaption">
+        <span id="tDist">—</span><span class="sep">·</span><span id="tIncl">—</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="mission">
+    <div class="mission-label">Mission elapsed</div>
+    <div class="mission-clock" id="mClock">00:00:00</div>
+  </div>
+
+  <div class="telemetry" role="status" aria-label="Render telemetry">
+    <div class="trow"><span class="tlabel">Geodesic steps</span><span class="tval" id="tSteps">—</span></div>
+    <div class="trow"><span class="tlabel">Render profile</span><span class="tval" id="tProfile">—</span></div>
+    <div class="trow"><span class="tlabel">Buffer scale</span><span class="tval" id="tScale">—</span></div>
+    <div class="trow"><span class="tlabel">Frame rate</span><span class="tval" id="tFps">—</span></div>
+  </div>
+
+  <div id="toast" role="alert"></div>
+
+  <nav class="deck" id="deck" aria-label="Flight deck">
+    <div class="deck-head">
+      <span class="deck-title" id="deckTitle">Navigation</span>
+      <span class="deck-mode" id="deckMode">manual</span>
+    </div>
+
+    <div class="group">
+      <div class="group-label">Vantage</div>
+      <button class="row" data-preset="poster">
+        <span class="row-label">Poster</span><span class="row-val">24 RS · 38°</span><kbd>1</kbd>
+      </button>
+      <button class="row" data-preset="edge">
+        <span class="row-label">Edge on</span><span class="row-val">26 RS · 06°</span><kbd>2</kbd>
+      </button>
+      <button class="row" data-preset="polar">
+        <span class="row-label">Polar</span><span class="row-val">28 RS · 82°</span><kbd>3</kbd>
+      </button>
+      <button class="row" data-preset="close">
+        <span class="row-label">Close pass</span><span class="row-val">09 RS · 14°</span><kbd>4</kbd>
+      </button>
+    </div>
+
+    <div class="group">
+      <div class="group-label">Motion</div>
+      <button class="row" id="btnCine" aria-pressed="true">
+        <span class="row-label">Cinematic</span><span class="row-val" id="vCine">On</span><kbd>C</kbd>
+      </button>
+      <button class="row" id="btnAuto" aria-pressed="false">
+        <span class="row-label">Auto orbit</span><span class="row-val" id="vAuto">Off</span><kbd>R</kbd>
+      </button>
+    </div>
+
+    <div class="group">
+      <div class="group-label">Render</div>
+      <button class="row" id="btnQuality">
+        <span class="row-label">Profile</span><span class="row-val" id="vQuality">Cinematic</span><kbd>Q</kbd>
+      </button>
+      <button class="row" id="btnParams" aria-pressed="false">
+        <span class="row-label">Parameters</span><span class="row-val" id="vParams">Off</span><kbd>P</kbd>
+      </button>
+      <button class="row" id="btnHud" aria-pressed="true">
+        <span class="row-label">Telemetry</span><span class="row-val" id="vHud">On</span><kbd>H</kbd>
+      </button>
+      <button class="row" id="btnSound" aria-pressed="false">
+        <span class="row-label">Sound</span><span class="row-val" id="vSound">Off</span><kbd>M</kbd>
+      </button>
+    </div>
+  </nav>
+
+  <div id="hint" aria-hidden="true">Drag to orbit · scroll to zoom · any gesture takes the camera back</div>
+</div>
+
+<div id="params" class="hidden" role="dialog" aria-label="Raytracing parameters">
+  <div class="params-head">
+    <span>Parameters</span>
+    <button class="ghost" id="btnReset">Reset</button>
+  </div>
+  <div class="params-body" id="paramsBody"></div>
+</div>
+
+<div id="intro" aria-hidden="true">
+  <div class="intro-card">
+    <div class="intro-kicker">Real-time relativistic raytracing</div>
+    <div class="intro-mark">
+      <span class="mark-word mark-above"
+        ><i>B</i><i>E</i><i>Y</i><i>O</i><i>N</i><i>D</i></span>
+      <span class="mark-rule"></span>
+      <span class="mark-word mark-below"
+        ><i>H</i><i>O</i><i>R</i><i>I</i><i>Z</i><i>O</i><i>N</i></span>
+    </div>
+    <div class="intro-quote">“Do not go gentle into that good night.”</div>
+  </div>
+</div>
+
+<div id="fatal" hidden>
+  <div class="fatal-card" role="alertdialog" aria-labelledby="fatalTitle">
+    <div class="fatal-kicker">Mission anomaly</div>
+    <div class="fatal-title" id="fatalTitle">Signal lost</div>
+    <div class="fatal-msg" id="fatalMsg"></div>
+    <div class="fatal-actions">
+      <button class="ghost" id="fatalRetry">Reinitialise</button>
+      <button class="ghost" id="fatalLower">Lower profile</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
